@@ -10,7 +10,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["protobuf~=4.25.3"]
+dependencies = ["protobuf~=5.27.2"]
 
 dynamic = ["version"]
 [tool.maturin]
