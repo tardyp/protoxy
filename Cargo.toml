@@ -11,5 +11,5 @@ crate-type = ["cdylib"]
 [dependencies]
 prost = "0.13.1"
 prost-types = "0.13.1"
-protox = { path = "../protox/protox" }
+protox = "0.7.0"
 pyo3 = "0.22.0"

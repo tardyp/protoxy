@@ -1,15 +1,55 @@
 import typing
 import os
+from google.protobuf import descriptor_pool as descriptor_pool
 from google.protobuf.descriptor_pb2 import FileDescriptorSet
-from ._protoxy import compile as rs_compile
+from ._protoxy import compile as _rs_compile
 
 PathType = typing.Union[str, os.PathLike]
 
 
-def compile_bin(includes: typing.List[PathType], 
-            files: typing.List[PathType],
-            include_imports=True,
-            include_source_info=True) -> bytes:
+def _protoc_compile(
+    files: typing.List[str],
+    includes: typing.List[str] = [],
+    include_source_info=True,
+    include_imports=True,
+) -> bytes:
+    import subprocess
+    import tempfile
+    import shutil
+
+    protoc = shutil.which("protoc")
+    if not protoc:
+        raise ValueError("protoc not found in PATH")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out = os.path.join(tmpdir, "out")
+        cmd = [protoc, "--descriptor_set_out=" + out]
+        if include_source_info:
+            cmd.append("--include_source_info")
+        if include_imports:
+            cmd.append("--include_imports")
+        for inc in includes:
+            cmd.append("-I" + inc)
+        cmd.extend(files)
+        try:
+            subprocess.check_output(cmd)
+        except subprocess.CalledProcessError as e:
+            raise ValueError(
+                "protoc failed with exit code "
+                + str(e.returncode)
+                + ": "
+                + e.output.decode()
+            )
+        with open(out, "rb") as f:
+            return f.read()
+
+
+def compile_bin(
+    files: typing.List[PathType],
+    includes: typing.List[PathType] = [],
+    include_imports=True,
+    include_source_info=True,
+    use_protoc=False,
+) -> bytes:
     """
     Compiles a set of protobuf files using the given include paths.
 
@@ -18,6 +58,7 @@ def compile_bin(includes: typing.List[PathType],
     :param include_imports: Sets whether the output `FileDescriptorSet` should include imported files.
      only files explicitly included in `files` are included. If this option is set, imported files are included too.
     :param include_source_info: Include source info in the output (this includes comments found in the source files)
+    :param use_protoc: Use the `protoc` binary to compile the files. If this is set to `False`, the Rust implementation
 
     :return: The compiled `FileDescriptorSet` as a binary string
 
@@ -25,13 +66,21 @@ def compile_bin(includes: typing.List[PathType],
     """
     includes = [str(p) for p in includes]
     files = [str(p) for p in files]
-    return rs_compile(includes, files, include_imports, include_source_info)
+    if not includes:
+        includes = [os.path.dirname(files[0])]
+    if use_protoc:
+        return _protoc_compile(files, includes, include_source_info, include_imports)
+    else:
+        return _rs_compile(files, includes, include_source_info, include_imports)
 
 
-def compile(includes: typing.List[PathType], 
-            files: typing.List[PathType],
-            include_imports=True,
-            include_source_info=True) -> FileDescriptorSet:
+def compile(
+    files: typing.List[PathType],
+    includes: typing.List[PathType] = [],
+    include_imports=True,
+    include_source_info=True,
+    use_protoc=False,
+) -> FileDescriptorSet:
     """
     Compiles a set of protobuf files using the given include paths.
     :param includes: List of include paths (can be strings or `os.PathLike` objects)
@@ -39,11 +88,59 @@ def compile(includes: typing.List[PathType],
     :param include_imports: Sets whether the output `FileDescriptorSet` should include imported files.
      only files explicitly included in `files` are included. If this option is set, imported files are included too.
     :param include_source_info: Include source info in the output (this includes comments found in the source files)
-    
+    :param use_protoc: Use the `protoc` binary to compile the files. If this is set to `False`, the Rust implementation
+
     :return: The compiled `FileDescriptorSet` object
     :raises: `ValueError` if the compilation fails
     """
-    bin = compile_bin(includes, files, include_imports, include_source_info)
+    bin = compile_bin(files, includes, include_imports, include_source_info, use_protoc)
     fds = FileDescriptorSet()
     fds.ParseFromString(bin)
     return fds
+
+class ProtoxyModule(object):
+    def __repr__(self) -> str:
+        ret = f"<ProtoxyModule: "
+        for k, v in self.__dict__.items():
+            ret += f"{k}={v}, \n"
+        return ret + ">"
+
+def compile_as_modules(
+    files: typing.List[PathType],
+    includes: typing.List[PathType] = [],
+    use_protoc=False,
+) -> FileDescriptorSet:
+    """
+    Compiles a protobuf module using the given include paths.
+
+    :param files: The files to compile
+    :param includes: List of include paths (can be strings or `os.PathLike` objects)
+    :param include_imports: Sets whether the output `FileDescriptorSet` should include imported files.
+     only files explicitly included in `files` are included. If this option is set, imported files are included too.
+    :param include_source_info: Include source info in the output (this includes comments found in the source files)
+    :param use_protoc: Use the `protoc` binary to compile the files. If this is set to `False`, the Rust implementation
+
+    :return: a module object compiled from the given files, similar to the _pb2.py files generated by protoc
+    :raises: `ValueError` if the compilation fails
+    """
+    from google.protobuf.internal import builder as _builder
+    ret = ProtoxyModule()
+    ret.__name__ = "protoxy"
+    for f in files:
+        if isinstance(f, os.PathLike):
+            f = str(f)
+        module_name = os.path.basename(f).replace(".proto", "_pb2")
+        fds = compile_bin([f], includes, False, False, use_protoc)
+        # file_descriptor_set is just a repeated FileDescriptorProto
+        # so we can just skip the first 3 bytes
+        fd = fds[3:] 
+        DESCRIPTOR = descriptor_pool.Default().AddSerializedFile(fd)
+        print(DESCRIPTOR)
+        _globals = dict()
+        _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
+        _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, module_name, _globals)
+        mod = ProtoxyModule()
+        mod.__name__ = module_name
+        mod.__dict__.update(_globals)
+        setattr(ret, module_name, mod)
+    return ret

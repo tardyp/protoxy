@@ -211,6 +211,8 @@ dependencies = [
 [[package]]
 name = "protox"
 version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70cdc4ca5487c1fddc30fa2bebba28c0f250f80c944190652ccaaeb157349175"
 dependencies = [
  "bytes",
  "miette",
@@ -224,6 +226,8 @@ dependencies = [
 [[package]]
 name = "protox-parse"
 version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3a462d115462c080ae000c29a47f0b3985737e5d3a995fcdbcaa5c782068dde"
 dependencies = [
  "logos",
  "miette",
