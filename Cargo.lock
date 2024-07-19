@@ -237,7 +237,7 @@ dependencies = [
 
 [[package]]
 name = "protoxy"
-version = "0.7.0-rc2"
+version = "0.7.0-rc3"
 dependencies = [
  "prost",
  "prost-types",

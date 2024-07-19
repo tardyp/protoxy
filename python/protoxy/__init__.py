@@ -84,7 +84,7 @@ def compile(
     """
     Compiles a set of protobuf files using the given include paths.
     :param includes: List of include paths (can be strings or `os.PathLike` objects)
-    :paramefiles: List of files to compile (can be strings or `os.PathLike` objects)
+    :param files: List of files to compile (can be strings or `os.PathLike` objects)
     :param include_imports: Sets whether the output `FileDescriptorSet` should include imported files.
      only files explicitly included in `files` are included. If this option is set, imported files are included too.
     :param include_source_info: Include source info in the output (this includes comments found in the source files)
