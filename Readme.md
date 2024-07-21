@@ -57,6 +57,28 @@ fds = protoxy.compile(
 
 - use_protoc: Use the `protoc` binary to compile the files. If this is set to `True`, the protoc implementation is used using binary found in $PATH. protoc is defacto standard implementation of the protobuf compiler, but using it with python requires to run another binary, which can be a problem in some environments, is slower than the rust implementation and has scalability issue with command line length on windows.
 
+# Error handling
+
+The library raises a `protoxy.ProtoxyError` exception when an error occurs during the compilation.
+
+* short description of the error can be found in the `message` attribute of the exception.
+
+* long description of the error can be found in the `details` attribute of the exception (or `repr(e)`).
+
+It will be formatted using the rust `miette` library, which is a bit more user friendly than the protobuf error messages.
+
+Example of details:
+```
+Error:
+  × name 'Bar' is not defined
+   ╭─[root.proto:3:1]
+ 3 │ message Foo {
+ 4 │     Bar bar = 1;
+   ·     ─┬─
+   ·      ╰── found here
+ 5 │ }
+   ╰────
+```
 
 # proto module best practice
 
