@@ -24,6 +24,7 @@ def test_notfound(tmp_path, default_pool):
         protoxy.compile([test_proto])
     assert "test.proto' is not in any include path" in str(excinfo.value)
 
+@pytest.mark.xfail(reason="This test fails on some systems because of chmod", strict=False)
 def test_notreadable(tmp_path, default_pool):
     test_proto = tmp_path.joinpath("test.proto")
     test_proto.touch()
