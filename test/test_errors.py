@@ -1,6 +1,27 @@
 import protoxy
+from protoxy.errors import DetailedError, Label, Span
 import pytest
 from .utils import *  # noqa
+import re
+
+
+class DontMatter(object):
+    def __eq__(self, other):
+        return True
+
+
+DONTMATTER = DontMatter()
+
+
+class ReMatch(object):
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+    def __eq__(self, other):
+        return re.match(self.pattern, other)
+
+    def __repr__(self):
+        return f"ReMatch({self.pattern})"
 
 
 def test_basic(tmp_path, default_pool):
@@ -38,6 +59,15 @@ def test_notreadable(tmp_path, default_pool):
         protoxy.compile([test_proto])
     assert "error opening file" in str(excinfo.value)
     assert "Permission denied" in repr(excinfo.value)
+    assert excinfo.value.all_errors == [
+        DetailedError(
+            message=ReMatch("error opening file '.*/test.proto'"),
+            severity="error",
+            filename=None,
+            causes=["Permission denied (os error 13)"],
+            labels=[],
+        )
+    ]
 
 
 def test_multiple(tmp_path, default_pool):
@@ -101,35 +131,26 @@ def test_multiple_files(tmp_path, default_pool):
     assert "name 'strings' is not defined" in all
     assert "name 'fold' is not defined" in all
     assert "expected an integer, but found '='" in all
-    assert (
-        excinfo.value.all_errors
-        == [
-            {
-                "message": "name 'strings' is not defined",
-                "severity": "error",
-                "causes": [],
-                "filename": "test.proto",
-                "labels": [
-                    {"label": "found here", "span": {"offset": 69, "length": 7}}
-                ],
-            },
-            {
-                "message": "name 'fold' is not defined",
-                "severity": "error",
-                "causes": [],
-                "filename": "test.proto",
-                "labels": [
-                    {"label": "found here", "span": {"offset": 95, "length": 4}}
-                ],
-            },
-            {
-                "message": "expected an integer, but found '='",
-                "severity": "error",
-                "causes": [],
-                "filename": "test2.proto",
-                "labels": [
-                    {"label": "found here", "span": {"offset": 108, "length": 1}}
-                ],
-            },
-        ]
-    )
+    assert excinfo.value.all_errors == [
+        DetailedError(
+            message="name 'strings' is not defined",
+            severity="error",
+            filename="test.proto",
+            causes=[],
+            labels=[Label(label="found here", span=Span(offset=DONTMATTER, length=7))],
+        ),
+        DetailedError(
+            message="name 'fold' is not defined",
+            severity="error",
+            filename="test.proto",
+            causes=[],
+            labels=[Label(label="found here", span=Span(offset=DONTMATTER, length=4))],
+        ),
+        DetailedError(
+            message="expected an integer, but found '='",
+            severity="error",
+            filename="test2.proto",
+            causes=[],
+            labels=[Label(label="found here", span=Span(offset=DONTMATTER, length=1))],
+        ),
+    ]

@@ -32,6 +32,8 @@ protoxy.compile_as_modules(["path/to/file.proto"], dest=globals())
 file.Message()
 ```
 
+See the tests for more examples.
+
 # Additional options
 
 All those apis have additional options that can be passed as keyword arguments.
@@ -65,7 +67,7 @@ The library raises a `protoxy.ProtoxyError` exception when an error occurs durin
 
 * long description of the error can be found in the `details` attribute of the exception (or `repr(e)`).
 
-* machine readable list of all errors can be found in the `all_errors` attribute of the exception.
+* machine readable list of all errors can be found in the `all_errors: typing.List[protoxy.errors.DetailedError]` property of the exception.
 
 It will be formatted using the rust `miette` library, which is a bit more user friendly than the protobuf error messages.
 

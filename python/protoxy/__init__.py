@@ -3,29 +3,12 @@ import os
 from google.protobuf import descriptor_pool as descriptor_pool
 from google.protobuf.descriptor_pb2 import FileDescriptorSet
 from ._protoxy import compile as _rs_compile
-import json
+
+from .errors import ProtoxyError
+
+__all__ = ["compile", "compile_bin", "compile_as_modules", "ProtoxyError", "PathType"]
 
 PathType = typing.Union[str, os.PathLike]
-
-
-def flatten_related(err):
-    related = err.get("related", [])
-    del err["related"]
-    if err["message"] != "errors in multiple files":
-        yield err
-    for r in related:
-        yield from flatten_related(r)
-
-
-class ProtoxyError(Exception):
-    def __init__(self, message, details, json_details):
-        Exception.__init__(self, message)
-        self.details = details
-        self.all_errors = list(flatten_related(json.loads(json_details)))
-
-    def __repr__(self) -> str:
-        return super().__repr__() + f"\n{self.details}"
-
 
 def _protoc_compile(
     files: typing.List[str],
@@ -135,7 +118,7 @@ def pop_zigzag(bytes):
 
 class ProtoxyModule(object):
     def __repr__(self) -> str:
-        ret = f"<ProtoxyModule: \n"
+        ret = "<ProtoxyModule: \n"
         for k, v in self.__dict__.items():
             v = repr(v).replace("\n", "\n  ")
             ret += f"{k}={v}\n"
