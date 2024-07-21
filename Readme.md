@@ -65,20 +65,39 @@ The library raises a `protoxy.ProtoxyError` exception when an error occurs durin
 
 * long description of the error can be found in the `details` attribute of the exception (or `repr(e)`).
 
+* machine readable list of all errors can be found in the `all_errors` attribute of the exception.
+
 It will be formatted using the rust `miette` library, which is a bit more user friendly than the protobuf error messages.
+
+Details contain all errors for the whole compilation.
 
 Example of details:
 ```
-Error:
-  × name 'Bar' is not defined
-   ╭─[root.proto:3:1]
- 3 │ message Foo {
- 4 │     Bar bar = 1;
-   ·     ─┬─
-   ·      ╰── found here
- 5 │ }
+Error:   × name 'strings' is not defined
+   ╭─[test.proto:5:9]
+ 4 │     message Test {
+ 5 │         strings name = 1;
+   ·         ───┬───
+   ·            ╰── found here
+ 6 │         fold name2 = 2;
    ╰────
-```
+
+Error:   × name 'fold' is not defined
+   ╭─[test.proto:6:9]
+ 5 │         strings name = 1;
+ 6 │         fold name2 = 2;
+   ·         ──┬─
+   ·           ╰── found here
+ 7 │     }
+   ╰────
+Error:   × expected an integer, but found '='
+   ╭─[test2.proto:6:21]
+ 5 │         strings name = 1;
+ 6 │         fold name2 == 2;
+   ·                     ┬
+   ·                     ╰── found here
+ 7 │     }
+   ╰────```
 
 # proto module best practice
 
