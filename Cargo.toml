@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 miette = { version = "7.2.0", features = ["fancy"] }
 prost = "0.13.1"
 prost-types = "0.13.1"
+protobuf = "3.5.0"
 protox = "0.7.0"
 pyo3 = "0.22.0"
 thiserror = "1.0.63"

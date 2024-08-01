@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
 use miette::Diagnostic;
 use pyo3::{prelude::*, types::PyBytes};
 use thiserror::Error;
+mod comments2option;
+mod path_resolver;
 
 #[derive(Debug, Error, Diagnostic)]
 #[error("errors in multiple files")]
@@ -51,15 +55,37 @@ fn _compile(
 }
 
 #[pyfunction]
+#[pyo3(signature = (files, includes, include_source_info, include_imports, comments2option=None))]
 fn compile<'py>(
     py: Python<'py>,
     files: Vec<String>,
     includes: Vec<String>,
     include_source_info: bool,
     include_imports: bool,
+    comments2option: Option<HashMap<String, u32>>,
 ) -> PyResult<Bound<'py, PyBytes>> {
-    let res = _compile(files, includes, include_source_info, include_imports)
+    let mut res = _compile(files, includes, include_source_info, include_imports)
         .map_err(error::into_pyerr)?;
+    if let Some(comments2option) = comments2option {
+        let ids = comments2option
+            .iter()
+            .fold(comments2option::DescriptionIds::default(), |mut ids, (k, v)| {
+                match k.as_str() {
+                    "file" => ids.file = Some(*v),
+                    "message" => ids.message = Some(*v),
+                    "enum" => ids.enum_ = Some(*v),
+                    "service" => ids.service = Some(*v),
+                    "method" => ids.method = Some(*v),
+                    "field" => ids.field = Some(*v),
+                    "enum_value" => ids.enum_value = Some(*v),
+                    "extension" => ids.extension = Some(*v),
+                    "oneof" => ids.oneof = Some(*v),
+                    _ => {}
+                }
+                ids
+            });
+        res = comments2option::comments2option(&res, &ids);
+    }
     Ok(PyBytes::new_bound(py, &res))
 }
 

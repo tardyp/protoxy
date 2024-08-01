@@ -45,13 +45,13 @@ def _protoc_compile(
         with open(out, "rb") as f:
             return f.read()
 
-
 def compile_bin(
     files: typing.List[PathType],
     includes: typing.List[PathType] = [],
     include_imports=True,
     include_source_info=True,
     use_protoc=False,
+    comments2option=None,
 ) -> bytes:
     """
     Compiles a set of protobuf files using the given include paths.
@@ -62,6 +62,9 @@ def compile_bin(
      only files explicitly included in `files` are included. If this option is set, imported files are included too.
     :param include_source_info: Include source info in the output (this includes comments found in the source files)
     :param use_protoc: Use the `protoc` binary to compile the files. If this is set to `False`, the Rust implementation
+    :param comments2option: A dictionary mapping comments to protobuf options. The keys are the name of the protobuf object:
+    (file, message, enum, service, method, field, enum_value, extension, oneof) and the values are the option numeric id.
+    This is only supported by the Rust implementation
 
     :return: The compiled `FileDescriptorSet` as a binary string
 
@@ -74,7 +77,7 @@ def compile_bin(
     if use_protoc:
         return _protoc_compile(files, includes, include_source_info, include_imports)
     else:
-        return _rs_compile(files, includes, include_source_info, include_imports)
+        return _rs_compile(files, includes, include_source_info, include_imports, comments2option)
 
 
 def compile(
@@ -83,6 +86,7 @@ def compile(
     include_imports=True,
     include_source_info=True,
     use_protoc=False,
+    comments2option=None,
 ) -> FileDescriptorSet:
     """
     Compiles a set of protobuf files using the given include paths.
@@ -92,11 +96,13 @@ def compile(
      only files explicitly included in `files` are included. If this option is set, imported files are included too.
     :param include_source_info: Include source info in the output (this includes comments found in the source files)
     :param use_protoc: Use the `protoc` binary to compile the files. If this is set to `False`, the Rust implementation
+    :param comments2option: A dictionary mapping comments to protobuf options. The keys are the name of the protobuf object:
+    (file, message, enum, service, method, field, enum_value, extension, oneof) and the values are the option numeric id.
 
     :return: The compiled `FileDescriptorSet` object
     :raises: `ValueError` if the compilation fails
     """
-    bin = compile_bin(files, includes, include_imports, include_source_info, use_protoc)
+    bin = compile_bin(files, includes, include_imports, include_source_info, use_protoc, comments2option)
     fds = FileDescriptorSet()
     fds.ParseFromString(bin)
     return fds

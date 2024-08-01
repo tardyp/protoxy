@@ -58,6 +58,8 @@ fds = protoxy.compile(
 - include_source_info: Include source info in the output (this includes comments found in the source files)
 
 - use_protoc: Use the `protoc` binary to compile the files. If this is set to `True`, the protoc implementation is used using binary found in $PATH. protoc is defacto standard implementation of the protobuf compiler, but using it with python requires to run another binary, which can be a problem in some environments, is slower than the rust implementation and has scalability issue with command line length on windows.
+- comments2option: A dictionary mapping comments to protobuf options. The keys are the name of the protobuf object: ("file", "message", "enum", "service", "method", "field", "enum_value", "extension", "oneof") and the values are the option numeric id. This is only supported by the Rust implementation.
+Convert comments to options. This is useful to include documentation in the generated python module. See the comments2option section for more details.
 
 # Error handling
 
@@ -122,4 +124,74 @@ import pathlib, protoxy
 _protos = (pathlib.Path(__file__).parent / "protos").glob("*.proto")
 protoxy.compile_as_modules(_protos, dest=globals())
 
+```
+
+# Comments2option
+
+Protobuf support for documentation is limited to comments, which are included in source code info, an obscure part of FileDescriptor.
+Sourcecode info is hard to use because it relies on object paths, which are described using id and index in the protobuf object tree.
+This is only described in the protobuf mailing list in a message from Jerry Berg in a thread called "Best way to parse SourceCodeInfo Data From Protobuf Files"
+
+https://groups.google.com/g/protobuf/c/AyOQvhtwvYc/m/AtgdNNkbCAAJ (not sure if this URL is stable)
+
+
+It is much easier to process if the documentation is included as a protobuf option for each message, field, enum, etc. But the syntax is not ideal, as the options strings must be split across line boundary e.g
+
+```proto
+syntax = "proto3";
+import "doc.proto";
+message Test {
+  option (doc.message_description) = "This is a test message "
+  "whose doc is split between"
+  "multiple lines";
+  string name = 1 [(doc.field_description) = "This is a test field"];
+}
+```
+
+doc.proto being:
+
+```proto
+syntax = "proto3";
+package doc;
+extend google.protobuf.MessageOptions {
+  string message_description = 50000;
+}
+extend google.protobuf.FieldOptions {
+  string field_description = 50001;
+}
+```
+Notice how the option is split between multiple lines. It is easy to forget to add the trailing space (like in second line), which will result in some word being concatenated.
+
+To avoid this, the `comments2option` parameter of the protoxy compiler can be used to convert comments into options. It will add the option to the next element, so the above example can be written as:
+
+```proto
+syntax = "proto3";
+import "doc.proto";
+// This is a test message whose doc is
+// split between multiple lines
+message Test {
+  // This is a test field
+  string name = 1;
+}
+```
+in your python code, you can then use:
+```python
+import protoxy
+
+mod = protoxy.compile_as_modules(
+    files = ["path/to/doc.proto"],
+    includes = ["path/to"])
+
+# for python's protobuf module to properly decode the options,
+# they must be loaded as a python module first
+message_description = mod["doc"].message_description
+field_description = mod["doc"].field_description
+
+fds = protoxy.compile(
+    files = ["path/to/file.proto"],
+    includes = ["path/to"],
+    include_source_info = True,
+    comments2option = {"message": 50000, "field": 50001})
+
+assert fds.file[0].message_type[0].options.Extensions[message_description] == "This is a test message whose doc is split between multiple lines"
 ```
