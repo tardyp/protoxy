@@ -1,6 +1,6 @@
 [package]
 name = "protoxy"
-version = "0.7.0-rc3"
+version = "0.7.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,6 +13,6 @@ miette = { version = "7.2.0", features = ["fancy"] }
 prost = "0.13.1"
 prost-types = "0.13.1"
 protobuf = "3.5.0"
-protox = "0.7.0"
+protox = "0.7.1"
 pyo3 = "0.22.0"
 thiserror = "1.0.63"
