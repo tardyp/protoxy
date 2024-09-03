@@ -10,9 +10,19 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+description = "A compiler for .proto files into FileDescriptorSets or (experimentally) python dynamic module"
+keywords = ["protobuf", "protoc"]
 dependencies = ["protobuf~=5.27.2"]
-
+readme = "README.md"
+license = {file = "LICENSE"}
+maintainers = [
+    { name = "Pierre Tardy", email="tardyp@gmail.com"}
+]
 dynamic = ["version"]
+[project.urls]
+homepage = "https://github.com/tardyp/protoxy"
+repository = "https://github.com/tardyp/protoxy"
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 python-source = "python"
