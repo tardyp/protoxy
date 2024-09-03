@@ -377,7 +377,7 @@ dependencies = [
 
 [[package]]
 name = "protoxy"
-version = "0.7.1"
+version = "0.7.1-post1"
 dependencies = [
  "miette",
  "prost",
