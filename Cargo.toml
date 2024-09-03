@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 miette = { version = "7.2.0", features = ["fancy"] }
-prost = "0.13.1"
+prost = "0.13.2"
 prost-types = "0.13.1"
 protobuf = "3.5.0"
 protox = "0.7.1"
