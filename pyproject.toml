@@ -13,7 +13,7 @@ classifiers = [
 description = "A compiler for .proto files into FileDescriptorSets or (experimentally) python dynamic module"
 keywords = ["protobuf", "protoc"]
 dependencies = ["protobuf~=5.27.2"]
-readme = "README.md"
+readme = "Readme.md"
 license = {file = "LICENSE"}
 maintainers = [
     { name = "Pierre Tardy", email="tardyp@gmail.com"}
