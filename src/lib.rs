@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 use miette::Diagnostic;
+use protobuf::{descriptor::FileDescriptorSet, Message};
 use pyo3::{prelude::*, types::PyBytes};
 use thiserror::Error;
 mod comments2option;
 mod path_resolver;
+mod typing_stub;
 
 #[derive(Debug, Error, Diagnostic)]
 #[error("errors in multiple files")]
@@ -89,8 +91,71 @@ fn compile<'py>(
     Ok(PyBytes::new_bound(py, &res))
 }
 
+#[pyclass]
+pub struct PythonProtoxyModule {
+    pub fd: Vec<u8>,
+    #[pyo3(get)]
+    pub typing_stub: String,
+    #[pyo3(get)]
+    pub name: String,
+    #[pyo3(get)]
+    pub package: String,
+    #[pyo3(get)]
+    pub dep_names: Vec<String>,
+}
+
+#[pymethods]
+impl PythonProtoxyModule {
+    #[getter]
+    fn fd<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        Ok(PyBytes::new_bound(py, self.fd.as_slice()))
+    }
+}
+#[pyfunction]
+#[pyo3(signature = (files, includes))]
+fn compile_python_modules(
+    files: Vec<String>,
+    includes: Vec<String>,
+) -> PyResult<Vec<PythonProtoxyModule>> {
+    let fds = _compile(files, includes, true, true)
+        .map_err(error::into_pyerr)?;
+
+    let fds = FileDescriptorSet::parse_from_bytes(&fds).unwrap();
+    let mut res = Vec::new();
+
+    let package_by_file = fds.file.iter().map(|fd| {
+        let package = fd.package.clone().unwrap();
+        (fd.name.clone().unwrap(), package)
+    }).collect::<HashMap<String, String>>();
+
+    for mut fd in fds.file {
+        if fd.package == Some("google.protobuf".to_string()) {
+            continue;
+        }
+        let typing_stub = typing_stub::generate_typing_stub(&fd);
+        // source info is not needed in the output, but for stub generation
+        fd.source_code_info.clear();
+        let mut dep_names = Vec::new();
+        for dep in fd.dependency.iter() {
+            if let Some(dep) = package_by_file.get(dep) {
+                dep_names.push(dep.to_owned());
+            }
+        }
+        res.push(PythonProtoxyModule {
+            fd: fd.write_to_bytes().unwrap(),
+            typing_stub,
+            package: fd.package.unwrap(),
+            name: fd.name.unwrap(),
+            dep_names,
+        });
+    }
+    Ok(res)
+}
+
 #[pymodule]
 fn _protoxy(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_python_modules, m)?)?;
     Ok(())
 }
+

@@ -379,6 +379,7 @@ dependencies = [
 name = "protoxy"
 version = "0.7.1-post2"
 dependencies = [
+ "heck",
  "miette",
  "prost",
  "prost-types",
