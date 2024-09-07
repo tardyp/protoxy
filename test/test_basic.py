@@ -63,7 +63,7 @@ def test_module_import(tmp_path, default_pool):
         string name = 1;
     }
     """)
-    test_module = tmp_path.joinpath("protos.py")
+    test_module = tmp_path.joinpath("protos_module.py")
     test_module.write_text("""
 import pathlib, protoxy
 
@@ -71,10 +71,43 @@ _protos = (pathlib.Path(__file__).parent).glob("*.proto")
 protoxy.compile_as_modules(_protos, dest=globals())
     """)
     sys.path.append(str(tmp_path))
-    mod = importlib.import_module("protos")
+    mod = importlib.import_module("protos_module")
     assert mod.test.Test.DESCRIPTOR.name == "Test"
     assert mod.test.Test.DESCRIPTOR.fields[0].name == "name"
     # not that by default, the module name is the same as the proto file name
     # not the package name
     assert mod.test2.Test2.DESCRIPTOR.name == "Test2"
-    assert mod.test2.Test2.DESCRIPTOR.fields[0].name == "name"
+
+def test_package_import(tmp_path, default_pool):
+    """ test for the Readme example """
+    test_proto = tmp_path.joinpath("test.proto")
+    test_proto.write_text("""
+    syntax = "proto3";
+    package test;
+    message Test {
+        string name = 1;
+    }
+    """)
+    test_proto2 = tmp_path.joinpath("test2.proto")
+    test_proto2.write_text("""
+    syntax = "proto3";
+    package test;
+    message Test2 {
+        string name = 1;
+    }
+    """)
+    tmp_path.joinpath("protos").mkdir()
+    test_module = tmp_path.joinpath("protos/__init__.py")
+    test_module.write_text("""
+import pathlib, protoxy
+
+_protos = (pathlib.Path(__file__).parent.parent).glob("*.proto")
+protoxy.compile_as_packages(_protos, dest=globals(), module_parent=__name__)
+    """)
+    sys.path.append(str(tmp_path))
+    mod = importlib.import_module("protos")
+    assert mod.test.Test.DESCRIPTOR.name == "Test"
+    assert mod.test.Test.DESCRIPTOR.fields[0].name == "name"
+    # note that now by default, the module name is the package name
+    assert mod.test.Test2.DESCRIPTOR.name == "Test2"
+    assert mod.test.Test2.DESCRIPTOR.fields[0].name == "name"
