@@ -9,9 +9,9 @@ name = "protoxy"
 crate-type = ["cdylib"]
 
 [dependencies]
-miette = { version = "7.4.0", features = ["fancy"] }
-prost = "0.13.4"
-prost-types = "0.13.4"
+miette = { version = "7.5.0", features = ["fancy"] }
+prost = "0.13.5"
+prost-types = "0.13.5"
 protobuf = "3.7.1"
 protox = "0.7.2"
 pyo3 = "0.23.4"
