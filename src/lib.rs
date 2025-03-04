@@ -86,7 +86,7 @@ fn compile<'py>(
             });
         res = comments2option::comments2option(&res, &ids);
     }
-    Ok(PyBytes::new_bound(py, &res))
+    Ok(PyBytes::new(py, &res))
 }
 
 #[pymodule]
