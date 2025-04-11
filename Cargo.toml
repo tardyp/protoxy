@@ -13,6 +13,6 @@ miette = { version = "7.5.0", features = ["fancy"] }
 prost = "0.13.5"
 prost-types = "0.13.5"
 protobuf = "3.7.2"
-protox = "0.7.2"
+protox = "0.8.0"
 pyo3 = "0.24.1"
 thiserror = "2.0.12"
